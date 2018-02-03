@@ -1,0 +1,130 @@
+import java_cup.runtime.*;
+
+terminal IF, FOR, ELSE, WHILE, DO, PRINT, INT;
+terminal AP, CP, MAS, MENOS, UMENOS, POR, DIV, MOD;
+terminal IGUAL, IGUALCOMP, MAYOR, MENOR, INC, DEC;
+terminal NO, AND, OR, PYC, COMA, TO, DOWNTO, STEP;
+terminal AL, CL;
+terminal String IDENT, ENTERO;
+
+non terminal s;
+non terminal String Lista_sent;
+non terminal String sent;
+non terminal String expresion;
+non terminal String condicion;
+non terminal String var;
+non terminal String declaracion;
+
+precedence left NO;
+precedence left IGUAL;
+precedence left AND, OR;
+precedence left INC;
+precedence left MAS, MENOS;
+precedence left POR, DIV;
+precedence left AP, CP;
+precedence left TO, DOWNTO, STEP;
+precedence left UMENOS;
+precedence left MOD;
+precedence left AL, CL;
+precedence left COMA;
+precedence nonassoc ELSE;
+
+s           ::= Lista_sent:e
+                {:PLXC.out.print(e);:}
+                ;
+Lista_sent  ::= Lista_sent:e1 sent:e2 {:RESULT=e1+e2;:} |
+                sent:e {:RESULT=e;:}
+                ;
+sent        ::= expresion:e PYC
+                {:RESULT=PLXC.get(e);:} |
+                INT declaracion:d PYC
+                {:RESULT=d;:} |
+                IF AP condicion:c CP sent:s
+                {:;RESULT=PLXC.get(c)+"if("+c+") goto L"+PLXC.tag+";\ngoto L"+(PLXC.tag+1)+";\nL"+PLXC.tag+":\n"+s+"L"+(PLXC.tag+1)+":\n"; PLXC.tag+=2;:} |
+                IF AP condicion:c CP sent:s1 ELSE sent:s2
+                {:RESULT=PLXC.get(c)+"if("+c+") goto L"+PLXC.tag+";\ngoto L"+(PLXC.tag+1)+";\nL"+PLXC.tag+":\n"+s1+"goto L"+(PLXC.tag+2)+";\nL"+(PLXC.tag+1)+":\n"+s2+"L"+(PLXC.tag+2)+":\n"; PLXC.tag+=3;:} |
+                WHILE AP condicion:c CP sent:s
+                {:PLXC.clearAmb();RESULT="L"+(PLXC.tag+2)+":\n"+PLXC.get(c)+"if("+c+") goto L"+PLXC.tag+";\ngoto L"+(PLXC.tag+1)+";\nL"+PLXC.tag+":\n"+s+"goto L"+(PLXC.tag+2)+";\nL"+(PLXC.tag+1)+":\n"; PLXC.tag+=3;:} |
+                DO sent:s WHILE AP condicion:c CP PYC
+                {:PLXC.clearAmb();RESULT="L"+PLXC.tag+":\n"+s+PLXC.get(c)+"if("+c+") goto L"+PLXC.tag+";\nL"+(PLXC.tag+1)+":\n";PLXC.tag+=2;:} |
+                FOR AP expresion:e1 PYC condicion:c PYC expresion:e2 CP sent:s
+                {:RESULT=PLXC.get(e1)+"L"+(PLXC.tag+2)+":\n"+PLXC.get(c)+"if("+c+") goto L"+PLXC.tag+";\ngoto L"+(PLXC.tag+1)+";\nL"+PLXC.tag+":\n"+s+PLXC.get(e2)+"goto L"+(PLXC.tag+2)+";\nL"+(PLXC.tag+1)+":\n";PLXC.tag+=3;:} |
+                FOR expresion:e1 TO expresion:e2 DO sent:s
+                {:RESULT=PLXC.get(e1)+PLXC.get(e2)+"$t"+PLXC.tmp+"="+e2+"+1;\nL"+(PLXC.tag+2)+":\n"+"if("+PLXC.head(e1)+"<"+"$t"+PLXC.tmp+") goto L"+PLXC.tag+";\ngoto L"+(PLXC.tag+1)+";\nL"+PLXC.tag+":\n"+s+PLXC.head(e1)+"="+PLXC.head(e1)+"+1;\n"+"goto L"+(PLXC.tag+2)+";\nL"+(PLXC.tag+1)+":\n";PLXC.tag+=3;PLXC.tmp++;:} %prec TO|
+                FOR expresion:e1 TO expresion:e2 STEP expresion:e3 DO sent:s
+                {:RESULT=PLXC.get(e1)+PLXC.get(e2)+"$t"+PLXC.tmp+"="+e2+"+1;\nL"+(PLXC.tag+2)+":\n"+"if("+PLXC.head(e1)+"<"+"$t"+PLXC.tmp+") goto L"+PLXC.tag+";\ngoto L"+(PLXC.tag+1)+";\nL"+PLXC.tag+":\n"+s+PLXC.get(e3)+PLXC.head(e1)+"="+PLXC.head(e1)+"+"+PLXC.head(e3)+";\n"+"goto L"+(PLXC.tag+2)+";\nL"+(PLXC.tag+1)+":\n";PLXC.tag+=3;PLXC.tmp++;:} %prec TO|
+                FOR expresion:e1 DOWNTO expresion:e2 DO sent:s
+                {:RESULT=PLXC.get(e1)+PLXC.get(e2)+"$t"+PLXC.tmp+"="+e2+"-1;\nL"+(PLXC.tag+2)+":\n"+"if($t"+PLXC.tmp+"<"+PLXC.head(e1)+") goto L"+PLXC.tag+";\ngoto L"+(PLXC.tag+1)+";\nL"+PLXC.tag+":\n"+s+PLXC.head(e1)+"="+PLXC.head(e1)+"-1;\n"+"goto L"+(PLXC.tag+2)+";\nL"+(PLXC.tag+1)+":\n";PLXC.tag+=3;PLXC.tmp++;:} %prec TO|
+                FOR expresion:e1 DOWNTO expresion:e2 STEP expresion:e3 DO sent:s
+                {:RESULT=PLXC.get(e1)+PLXC.get(e2)+"$t"+PLXC.tmp+"="+e2+"-1;\nL"+(PLXC.tag+2)+":\n"+"if($t"+PLXC.tmp+"<"+PLXC.head(e1)+") goto L"+PLXC.tag+";\ngoto L"+(PLXC.tag+1)+";\nL"+PLXC.tag+":\n"+s+PLXC.get(e3)+PLXC.head(e1)+"="+PLXC.head(e1)+"-"+PLXC.head(e3)+";\n"+"goto L"+(PLXC.tag+2)+";\nL"+(PLXC.tag+1)+":\n";PLXC.tag+=3;PLXC.tmp++;:} %prec TO|
+                PRINT AP expresion:e CP PYC
+                {:RESULT=PLXC.get(e)+"print "+PLXC.head(e)+";\n";:} |
+                AL Lista_sent:e CL
+                {:RESULT=e;PLXC.clearAmb();:}
+                ;
+var         ::= IDENT:e
+                {:if(PLXC.variables.containsKey(e)){RESULT=e;}else{PLXC.out.println("error;\n#variable no declarada");}:}
+                ;
+declaracion ::= IDENT:i COMA declaracion:d
+                {:if(PLXC.variables.containsKey(i)){PLXC.out.println("error;\n#variable ya declarada");}else{RESULT=d; PLXC.variables.put(i, "int"); PLXC.amb.add(i);}:} |
+                IDENT:i
+                {:if(PLXC.variables.containsKey(i)){PLXC.out.println("error;\n#variable ya declarada");}else{RESULT=""; PLXC.variables.put(i, "int");PLXC.amb.add(i);}:} |
+                IDENT:i IGUAL expresion:e
+                {:if(PLXC.variables.containsKey(i)){PLXC.out.println("error;\n#variable ya declarada");}else{RESULT=PLXC.get(e)+i+"="+e+";\n";PLXC.table.put(RESULT, RESULT); PLXC.variables.put(i, "int");PLXC.amb.add(i);}:} |
+                IDENT:i IGUAL expresion:e COMA declaracion:d
+                {:if(PLXC.variables.containsKey(i)){PLXC.out.println("error;\n#variable ya declarada");}else{RESULT=PLXC.get(e)+i+"="+e+";\n"+d;PLXC.table.put(RESULT, RESULT); PLXC.variables.put(i, "int");PLXC.amb.add(i);}:} |
+                ;
+expresion   ::= expresion:e1 MAS expresion:e2
+                {:RESULT="$t"+PLXC.tmp; PLXC.table.put(RESULT,PLXC.get(e1)+PLXC.get(e2)+RESULT+"="+e1+"+"+e2+";\n");PLXC.tmp++;:} |
+                expresion:e1 MENOS expresion:e2
+                {:RESULT="$t"+PLXC.tmp; PLXC.table.put(RESULT,PLXC.get(e1)+PLXC.get(e2)+RESULT+"="+e1+"-"+e2+";\n");PLXC.tmp++;:} |
+                expresion:e1 POR expresion:e2
+                {:RESULT="$t"+PLXC.tmp; PLXC.table.put(RESULT,PLXC.get(e1)+PLXC.get(e2)+RESULT+"="+e1+"*"+e2+";\n");PLXC.tmp++;:} |
+                expresion:e1 DIV expresion:e2
+                {:RESULT="$t"+PLXC.tmp; PLXC.table.put(RESULT,PLXC.get(e1)+PLXC.get(e2)+RESULT+"="+e1+"/"+e2+";\n");PLXC.tmp++;:} |
+                expresion:e1 MOD expresion:e2
+                {:RESULT="$t"+(PLXC.tmp+2); PLXC.table.put(RESULT,PLXC.get(e1)+PLXC.get(e2)+"$t"+PLXC.tmp+"="+e1+"/"+e2+";\n$t"+(PLXC.tmp+1)+"=$t"+PLXC.tmp+"*"+e2+";\n"+"$t"+(PLXC.tmp+2)+"="+e1+"-"+"$t"+(PLXC.tmp+1)+";\n");PLXC.tmp+=3;:} |
+                MENOS expresion:e
+                {:RESULT="$t"+PLXC.tmp; PLXC.table.put(RESULT,PLXC.get(e)+RESULT+"=-"+e+";\n");PLXC.tmp++;:} %prec UMENOS |
+                AP expresion:e CP
+                {:RESULT=e;:} |
+                var:i INC
+                {:RESULT="$t"+PLXC.tmp; PLXC.table.put(RESULT, RESULT+"="+i+";\n"+i+"="+i+"+1;\n");PLXC.tmp++;:}  |
+                INC var:i
+                {:RESULT=i; PLXC.table.put(RESULT, RESULT+"="+i+"+1;\n");:}  |
+                var:i DEC
+                {:RESULT="$t"+PLXC.tmp; PLXC.table.put(RESULT, RESULT+"="+i+";\n"+i+"="+i+"-1;\n");PLXC.tmp++;:}  |
+                DEC var:i
+                {:RESULT=i; PLXC.table.put(RESULT, RESULT+"="+i+"-1;\n");:}  |
+                var:i IGUAL expresion:e
+                {:RESULT=i+"="+PLXC.head(e)+";\n";PLXC.table.put(RESULT,PLXC.get(e)+RESULT);:} |
+                var:v
+                {:RESULT=v;:} |
+                ENTERO:n
+                {:RESULT=n;:}
+                ;
+condicion   ::= expresion:e1 IGUALCOMP expresion:e2
+                {:RESULT=PLXC.head(e1)+"=="+PLXC.head(e2); PLXC.table.put(RESULT, PLXC.get(e1)+PLXC.get(e2));:} |
+                expresion:e1 NO IGUAL expresion:e2
+                {:RESULT=PLXC.head(e1)+"<"+PLXC.head(e2); PLXC.table.put(RESULT, PLXC.get(e1)+PLXC.get(e2)+"if("+PLXC.head(e2)+"<"+PLXC.head(e1)+") "+"goto L"+PLXC.tag+";\n");:} |
+                expresion:e1 MENOR expresion:e2
+                {:RESULT=PLXC.head(e1)+"<"+PLXC.head(e2); PLXC.table.put(RESULT, PLXC.get(e1)+PLXC.get(e2));:} |
+                expresion:e1 MENOR IGUAL expresion:e2
+                {:RESULT=e1+"<"+"$t"+PLXC.tmp;PLXC.table.put(RESULT, PLXC.get(e1)+PLXC.get(e2)+"$t"+PLXC.tmp+"="+e2+"+1;\n");PLXC.tmp++;:} |
+                expresion:e1 IGUAL MENOR expresion:e2
+                {:RESULT=e1+"<"+"$t"+PLXC.tmp;PLXC.table.put(RESULT, PLXC.get(e1)+PLXC.get(e2)+"$t"+PLXC.tmp+"="+e2+"+1;\n");PLXC.tmp++;:} |
+                expresion:e2 MAYOR expresion:e1
+                {:RESULT=PLXC.head(e1)+"<"+PLXC.head(e2); PLXC.table.put(RESULT, PLXC.get(e1)+PLXC.get(e2));:} |
+                expresion:e2 MAYOR IGUAL expresion:e1
+                {:RESULT=e1+"<"+"$t"+PLXC.tmp;PLXC.table.put(RESULT, PLXC.get(e1)+PLXC.get(e2)+"$t"+PLXC.tmp+"="+e2+"+1;\n");PLXC.tmp++;:} |
+                expresion:e2 IGUAL MAYOR expresion:e1
+                {:RESULT=e1+"<"+"$t"+PLXC.tmp;PLXC.table.put(RESULT, PLXC.get(e1)+PLXC.get(e2)+"$t"+PLXC.tmp+"="+e2+"+1;\n");PLXC.tmp++;:} |
+                NO condicion:c
+                {::} |
+                condicion:c1 AND condicion:c2
+                {:RESULT=c2; PLXC.table.put(RESULT, PLXC.get(RESULT)+PLXC.get(c1)+"if("+c1+") goto L0"+PLXC.tagC+";\ngoto L"+(PLXC.tag+1)+";\nL0"+PLXC.tagC+":\n");PLXC.tagC++;:} |
+                condicion:c1 OR condicion:c2
+                {:RESULT=c2; PLXC.table.put(RESULT, PLXC.get(RESULT)+PLXC.get(c1)+"if("+c1+") goto L"+PLXC.tag+";\n");:} |
+                AP condicion:c CP
+                {:RESULT=c;:}
+                ;
