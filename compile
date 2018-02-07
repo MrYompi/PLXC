@@ -1,0 +1,4 @@
+#!/bin/bash
+cup *.cup
+jflex *.flex
+javac *.java

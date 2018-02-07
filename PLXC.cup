@@ -8,12 +8,14 @@ terminal AL, CL;
 terminal String IDENT, ENTERO;
 
 non terminal s;
+non terminal abrll, crrll;
 non terminal String Lista_sent;
 non terminal String sent;
 non terminal String expresion;
 non terminal String condicion;
 non terminal String var;
 non terminal String declaracion;
+
 
 precedence left NO;
 precedence left IGUAL;
@@ -40,13 +42,13 @@ sent        ::= expresion:e PYC
                 INT declaracion:d PYC
                 {:RESULT=d;:} |
                 IF AP condicion:c CP sent:s
-                {:;RESULT=PLXC.get(c)+"if("+c+") goto L"+PLXC.tag+";\ngoto L"+(PLXC.tag+1)+";\nL"+PLXC.tag+":\n"+s+"L"+(PLXC.tag+1)+":\n"; PLXC.tag+=2;:} |
+                {:RESULT=PLXC.get(c)+"if("+c+") goto L"+PLXC.tag+";\ngoto L"+(PLXC.tag+1)+";\nL"+PLXC.tag+":\n"+s+"L"+(PLXC.tag+1)+":\n"; PLXC.tag+=2;:} |
                 IF AP condicion:c CP sent:s1 ELSE sent:s2
                 {:RESULT=PLXC.get(c)+"if("+c+") goto L"+PLXC.tag+";\ngoto L"+(PLXC.tag+1)+";\nL"+PLXC.tag+":\n"+s1+"goto L"+(PLXC.tag+2)+";\nL"+(PLXC.tag+1)+":\n"+s2+"L"+(PLXC.tag+2)+":\n"; PLXC.tag+=3;:} |
                 WHILE AP condicion:c CP sent:s
-                {:PLXC.clearAmb();RESULT="L"+(PLXC.tag+2)+":\n"+PLXC.get(c)+"if("+c+") goto L"+PLXC.tag+";\ngoto L"+(PLXC.tag+1)+";\nL"+PLXC.tag+":\n"+s+"goto L"+(PLXC.tag+2)+";\nL"+(PLXC.tag+1)+":\n"; PLXC.tag+=3;:} |
+                {:RESULT="L"+(PLXC.tag+2)+":\n"+PLXC.get(c)+"if("+c+") goto L"+PLXC.tag+";\ngoto L"+(PLXC.tag+1)+";\nL"+PLXC.tag+":\n"+s+"goto L"+(PLXC.tag+2)+";\nL"+(PLXC.tag+1)+":\n"; PLXC.tag+=3;:} |
                 DO sent:s WHILE AP condicion:c CP PYC
-                {:PLXC.clearAmb();RESULT="L"+PLXC.tag+":\n"+s+PLXC.get(c)+"if("+c+") goto L"+PLXC.tag+";\nL"+(PLXC.tag+1)+":\n";PLXC.tag+=2;:} |
+                {:RESULT="L"+PLXC.tag+":\n"+s+PLXC.get(c)+"if("+c+") goto L"+PLXC.tag+";\nL"+(PLXC.tag+1)+":\n";PLXC.tag+=2;:} |
                 FOR AP expresion:e1 PYC condicion:c PYC expresion:e2 CP sent:s
                 {:RESULT=PLXC.get(e1)+"L"+(PLXC.tag+2)+":\n"+PLXC.get(c)+"if("+c+") goto L"+PLXC.tag+";\ngoto L"+(PLXC.tag+1)+";\nL"+PLXC.tag+":\n"+s+PLXC.get(e2)+"goto L"+(PLXC.tag+2)+";\nL"+(PLXC.tag+1)+":\n";PLXC.tag+=3;:} |
                 FOR expresion:e1 TO expresion:e2 DO sent:s
@@ -59,8 +61,15 @@ sent        ::= expresion:e PYC
                 {:RESULT=PLXC.get(e1)+PLXC.get(e2)+"$t"+PLXC.tmp+"="+e2+"-1;\nL"+(PLXC.tag+2)+":\n"+"if($t"+PLXC.tmp+"<"+PLXC.head(e1)+") goto L"+PLXC.tag+";\ngoto L"+(PLXC.tag+1)+";\nL"+PLXC.tag+":\n"+s+PLXC.get(e3)+PLXC.head(e1)+"="+PLXC.head(e1)+"-"+PLXC.head(e3)+";\n"+"goto L"+(PLXC.tag+2)+";\nL"+(PLXC.tag+1)+":\n";PLXC.tag+=3;PLXC.tmp++;:} %prec TO|
                 PRINT AP expresion:e CP PYC
                 {:RESULT=PLXC.get(e)+"print "+PLXC.head(e)+";\n";:} |
-                AL Lista_sent:e CL
-                {:RESULT=e;PLXC.clearAmb();:}
+                abrll Lista_sent:e crrll
+                {:RESULT=e;:}
+                ;
+abrll       ::= AL
+                {:PLXC.st.push(PLXC.amb);PLXC.amb.clear();:}
+                ;
+
+crrll       ::= CL
+                {:PLXC.clearAmb();:}
                 ;
 var         ::= IDENT:e
                 {:if(PLXC.variables.containsKey(e)){RESULT=e;}else{PLXC.out.println("error;\n#variable no declarada");}:}

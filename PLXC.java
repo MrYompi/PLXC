@@ -6,6 +6,7 @@ import java.io.Reader;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Scanner;
+import java.util.Stack;
 
 public class PLXC {
 	public static int tag=0;
@@ -16,6 +17,7 @@ public class PLXC {
 	public static HashMap<String, String> table = new HashMap<String, String>();
 	public static HashMap<String,	String> variables = new HashMap<String, String>();
 	public static HashSet<String> amb = new HashSet<String>();
+	public static Stack<HashSet<String>> st = new Stack<HashSet<String>>();
 	public static PrintStream out;
 	public static void main(String argv[]) {
     try {
@@ -52,8 +54,8 @@ public class PLXC {
 	}
 	public static void clearAmb(){
 		for(String s:amb){
-			table.remove(s);
+			variables.remove(s);
 		}
-		amb.clear();
+		amb=st.pop();
 	}
 }
