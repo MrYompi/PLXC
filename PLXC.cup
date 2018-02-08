@@ -5,16 +5,18 @@ terminal AP, CP, MAS, MENOS, UMENOS, POR, DIV, MOD;
 terminal IGUAL, IGUALCOMP, MAYOR, MENOR, INC, DEC;
 terminal NO, AND, OR, PYC, COMA, TO, DOWNTO, STEP;
 terminal AL, CL;
-terminal String CHAR, IDENT, ENTERO, TYPE;
+terminal TINT, TCHAR;
+terminal String CHAR, IDENT, ENTERO;
 
 non terminal s;
-non terminal abrll, crrll, tipo;
+non terminal abrll, crrll;
 non terminal String Lista_sent;
 non terminal String sent;
-non terminal String expresion;
+non terminal String expresion, exp;
+non terminal String carac;
 non terminal String condicion;
 non terminal String var;
-non terminal String declaracion;
+non terminal String declaracionInt, declaracionChar;
 
 
 precedence left NO;
@@ -37,9 +39,11 @@ s           ::= Lista_sent:e
 Lista_sent  ::= Lista_sent:e1 sent:e2 {:RESULT=e1+e2;:} |
                 sent:e {:RESULT=e;:}
                 ;
-sent        ::= expresion:e PYC
+sent        ::= exp:e PYC
                 {:RESULT=PLXC.get(e);:} |
-                tipo declaracion:d PYC
+                TINT declaracionInt:d PYC
+                {:RESULT=d;:} |
+                TCHAR declaracionChar:d PYC
                 {:RESULT=d;:} |
                 IF AP condicion:c CP sent:s
                 {:RESULT=PLXC.get(c)+"if("+c+") goto L"+PLXC.tag+";\ngoto L"+(PLXC.tag+1)+";\nL"+PLXC.tag+":\n"+s+"L"+(PLXC.tag+1)+":\n"; PLXC.tag+=2;:} |
@@ -60,31 +64,41 @@ sent        ::= expresion:e PYC
                 FOR expresion:e1 DOWNTO expresion:e2 STEP expresion:e3 DO sent:s
                 {:RESULT=PLXC.get(e1)+PLXC.get(e2)+"$t"+PLXC.tmp+"="+e2+"-1;\nL"+(PLXC.tag+2)+":\n"+"if($t"+PLXC.tmp+"<"+PLXC.head(e1)+") goto L"+PLXC.tag+";\ngoto L"+(PLXC.tag+1)+";\nL"+PLXC.tag+":\n"+s+PLXC.get(e3)+PLXC.head(e1)+"="+PLXC.head(e1)+"-"+PLXC.head(e3)+";\n"+"goto L"+(PLXC.tag+2)+";\nL"+(PLXC.tag+1)+":\n";PLXC.tag+=3;PLXC.tmp++;:} %prec TO|
                 PRINT AP expresion:e CP PYC
-                {:RESULT=PLXC.get(e)+"print "+PLXC.head(e)+";\n";:} |
+                {:if(PLXC.variables.get(e)==null||PLXC.variables.get(e).equals("int")){RESULT=PLXC.get(e)+"print "+PLXC.head(e)+";\n";}else if(PLXC.variables.get(e).equals("char")){RESULT="printc "+e+";\n";}:} |
+                PRINT AP carac:c CP PYC
+                {:RESULT=PLXC.get(c)+"printc "+c+";\n";:} |
                 abrll Lista_sent:e crrll
                 {:RESULT=e;:}
                 ;
-abrll       ::= AL
-                {:PLXC.st.push(PLXC.amb);PLXC.amb.clear();:}
-                ;
-
-crrll       ::= CL
-                {:PLXC.clearAmb();:}
-                ;
-tipo        ::= TYPE:t
-                {:PLXC.type=t;:}
-                ;
-var         ::= IDENT:e
-                {:if(PLXC.variables.containsKey(e)){RESULT=e;}else{PLXC.out.println("error;\n#variable no declarada");}:}
-                ;
-declaracion ::= IDENT:i COMA declaracion:d
-                {:if(PLXC.variables.containsKey(i)){PLXC.out.println("error;\n#variable ya declarada");}else{RESULT=d; PLXC.variables.put(i, PLXC.type); PLXC.amb.add(i);}:} |
+exp          ::= carac:c
+                 {:RESULT=c;:} |
+                 expresion:e
+                 {:RESULT=e;:}
+                 ;
+declaracionInt ::= IDENT:i COMA declaracionInt:d
+                {:if(PLXC.variables.containsKey(i)){PLXC.out.println("error;\n#variable ya declarada");}else{RESULT=d; PLXC.variables.put(i, "int"); PLXC.amb.add(i);}:} |
                 IDENT:i
-                {:if(PLXC.variables.containsKey(i)){PLXC.out.println("error;\n#variable ya declarada");}else{RESULT=""; PLXC.variables.put(i, PLXC.type);PLXC.amb.add(i);}:} |
+                {:if(PLXC.variables.containsKey(i)){PLXC.out.println("error;\n#variable ya declarada");}else{RESULT=""; PLXC.variables.put(i, "int");PLXC.amb.add(i);}:} |
                 IDENT:i IGUAL expresion:e
-                {:if(PLXC.variables.containsKey(i)){PLXC.out.println("error;\n#variable ya declarada");}else{RESULT=PLXC.get(e)+i+"="+e+";\n";PLXC.table.put(RESULT, RESULT); PLXC.variables.put(i, PLXC.type);PLXC.amb.add(i);}:} |
-                IDENT:i IGUAL expresion:e COMA declaracion:d
-                {:if(PLXC.variables.containsKey(i)){PLXC.out.println("error;\n#variable ya declarada");}else{RESULT=PLXC.get(e)+i+"="+e+";\n"+d;PLXC.table.put(RESULT, RESULT); PLXC.variables.put(i, PLXC.type);PLXC.amb.add(i);}:} |
+                {:if(PLXC.variables.containsKey(i)){PLXC.out.println("error;\n#variable ya declarada");}else{RESULT=PLXC.get(e)+i+"="+e+";\n";PLXC.table.put(RESULT, RESULT); PLXC.variables.put(i, "int");PLXC.amb.add(i);}:} |
+                IDENT:i IGUAL expresion:e COMA declaracionInt:d
+                {:if(PLXC.variables.containsKey(i)){PLXC.out.println("error;\n#variable ya declarada");}else{RESULT=PLXC.get(e)+i+"="+e+";\n"+d;PLXC.table.put(RESULT, RESULT); PLXC.variables.put(i, "int");PLXC.amb.add(i);}:} |
+                ;
+declaracionChar ::= IDENT:i COMA declaracionChar:d
+                {:if(PLXC.variables.containsKey(i)){PLXC.out.println("error;\n#variable ya declarada");}else{RESULT=d; PLXC.variables.put(i, "char"); PLXC.amb.add(i);}:} |
+                IDENT:i
+                {:if(PLXC.variables.containsKey(i)){PLXC.out.println("error;\n#variable ya declarada");}else{RESULT=""; PLXC.variables.put(i, "char");PLXC.amb.add(i);}:} |
+                IDENT:i IGUAL carac:e
+                {:if(PLXC.variables.containsKey(i)){PLXC.out.println("error;\n#variable ya declarada");}else{RESULT=PLXC.get(e)+i+"="+e+";\n";PLXC.table.put(RESULT, RESULT); PLXC.variables.put(i, "char");PLXC.amb.add(i);}:} |
+                IDENT:i IGUAL carac:e COMA declaracionChar:d
+                {:if(PLXC.variables.containsKey(i)){PLXC.out.println("error;\n#variable ya declarada");}else{RESULT=PLXC.get(e)+i+"="+e+";\n"+d;PLXC.table.put(RESULT, RESULT); PLXC.variables.put(i, "char");PLXC.amb.add(i);}:} |
+                ;
+carac       ::= AP TCHAR CP expresion:e
+                {:RESULT=e;:} |
+                CHAR:e
+                {:RESULT=new Integer((int)e.charAt(0)).toString();:} |
+                var:i IGUAL carac:e
+                {:if(PLXC.variables.get(i).equals("char")){RESULT=i+"="+PLXC.head(e)+";\n";PLXC.table.put(RESULT,PLXC.get(e)+RESULT);}else{PLXC.out.println("error;\n#Error de tipos");}:} |
                 ;
 expresion   ::= expresion:e1 MAS expresion:e2
                 {:RESULT="$t"+PLXC.tmp; PLXC.table.put(RESULT,PLXC.get(e1)+PLXC.get(e2)+RESULT+"="+e1+"+"+e2+";\n");PLXC.tmp++;:} |
@@ -109,13 +123,15 @@ expresion   ::= expresion:e1 MAS expresion:e2
                 DEC var:i
                 {:RESULT=i; PLXC.table.put(RESULT, RESULT+"="+i+"-1;\n");:}  |
                 var:i IGUAL expresion:e
-                {:RESULT=i+"="+PLXC.head(e)+";\n";PLXC.table.put(RESULT,PLXC.get(e)+RESULT);:} |
+                {:if(PLXC.type(i, e)){RESULT=i+"="+PLXC.head(e)+";\n";PLXC.table.put(RESULT,PLXC.get(e)+RESULT);}else{PLXC.out.println("error;\n#Error de tipos");}:} |
                 var:v
                 {:RESULT=v;:} |
                 ENTERO:n
                 {:RESULT=n;:} |
-                CHAR:e
-                {:RESULT=new Integer((int)e.charAt(0)).toString();:}
+                AP TINT CP var:v
+                {:RESULT="$"+v;PLXC.table.put(RESULT, RESULT+"="+v+";\n");PLXC.variables.put(RESULT, "int");:} |
+                AP TINT CP carac:e
+                {:RESULT=e;:}
                 ;
 condicion   ::= expresion:e1 IGUALCOMP expresion:e2
                 {:RESULT=PLXC.head(e1)+"=="+PLXC.head(e2); PLXC.table.put(RESULT, PLXC.get(e1)+PLXC.get(e2));:} |
@@ -141,4 +157,13 @@ condicion   ::= expresion:e1 IGUALCOMP expresion:e2
                 {:RESULT=c2; PLXC.table.put(RESULT, PLXC.get(RESULT)+PLXC.get(c1)+"if("+c1+") goto L"+PLXC.tag+";\n");:} |
                 AP condicion:c CP
                 {:RESULT=c;:}
+                ;
+abrll       ::= AL
+                {:PLXC.st.push(PLXC.amb);PLXC.amb.clear();:}
+                ;
+crrll       ::= CL
+                {:PLXC.clearAmb();:}
+                ;
+var         ::= IDENT:e
+                {:if(PLXC.variables.containsKey(e)){RESULT=e;}else{PLXC.out.println("error;\n#variable no declarada");}:}
                 ;

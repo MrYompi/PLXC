@@ -13,7 +13,6 @@ public class PLXC {
 	public static int tagC=0;
 	public static int tmp=0;
 	public static int as=0;
-	public static String type="";
 	public static HashMap<String, String> table = new HashMap<String, String>();
 	public static HashMap<String,	String> variables = new HashMap<String, String>();
 	public static HashSet<String> amb = new HashSet<String>();
@@ -57,5 +56,20 @@ public class PLXC {
 			variables.remove(s);
 		}
 		amb=st.pop();
+	}
+	public static boolean type(String i, String e){
+		if(variables.get(i).equals("int")){
+			if((variables.get(e)==null)||(variables.get(e).equals("int"))){
+				return true;
+			}
+		}
+		if(variables.get(i).equals("char")){
+			if((variables.get(e)==null)){
+				return false;
+			}else{
+				return variables.get(e).equals("char");
+			}
+		}
+		return false;
 	}
 }

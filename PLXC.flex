@@ -8,7 +8,8 @@ String aux="";
 %%
 
 <YYINITIAL>{
-      "int"|"char"        {return new Symbol(sym.TYPE, yytext());}
+      "int"        {return new Symbol(sym.TINT);}
+      "char"       {return new Symbol(sym.TCHAR);}
       "if"         {return new Symbol(sym.IF);}
       "for"        {return new Symbol(sym.FOR);}
       "else"        {return new Symbol(sym.ELSE);}
@@ -48,6 +49,6 @@ String aux="";
 }
 <CAR>{
       [^]"'"            {yybegin(YYINITIAL);return new Symbol(sym.CHAR, yytext().substring(0, yytext().length()-1));}
-      "\\u"[0-9]*"'"      {yybegin(YYINITIAL);return new Symbol(sym.CHAR, Character.toString((char) Integer.parseInt(yytext().substring(2, yytext().length()-1), 16)));}
+      "\\u"[0-9]+"'"      {yybegin(YYINITIAL);return new Symbol(sym.CHAR, Character.toString((char) Integer.parseInt(yytext().substring(2, yytext().length()-1), 16)));}
       [^]               {System.out.println("Invalid char: "+yytext());}
 }
